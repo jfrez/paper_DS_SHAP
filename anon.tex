@@ -1,0 +1,688 @@
+% TRR_latex_guidelines.tex V1.00, 31 August 2020
+
+\documentclass[times]{article}
+%\documentclass[times]{sagej}
+\usepackage{graphicx}
+
+\usepackage{moreverb,url}
+\usepackage{float} % permite el modificador [H]
+
+\usepackage[colorlinks,bookmarksopen,bookmarksnumbered,citecolor=red,urlcolor=red]{hyperref}
+
+\newcommand\BibTeX{{\rmfamily B\kern-.05em \textsc{i\kern-.025em b}\kern-.08em
+T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+%\bibliographystyle{SageV}
+
+
+\title{DSExplainer: Enhancing Model Interpretability\\ 
+with Belief and Plausibility Intervals via Dempster--Shafer Theory}
+
+
+
+\maketitle
+\begin{document}
+\begin{abstract}
+Interpretability is essential for trust and accountability in machine learning, particularly in sensitive domains such as healthcare, finance, and environmental decision-making. However, most explanation techniques provide only pointwise feature attributions and neglect epistemic uncertainty, limiting their reliability for high-stakes use. This article presents \textbf{DSExplainer}, a framework that integrates SHAP values with Dempster–Shafer theory (DST) to represent explanatory evidence as intervals of belief (\(Bel\)) and plausibility (\(Pl\)), distinguishing what a model knows from what it considers possible. The method maps SHAP contributions into basic probability assignments, separates the direction of influence, and fuses evidence across bootstrap replicas to produce signed intervals for explanatory hypotheses that capture both magnitude and epistemic reliability. Evaluation on three canonical tabular datasets demonstrates that DSExplainer preserves SHAP’s additive interpretability while augmenting it with explicit uncertainty information. Explanations with high \(Bel\) and narrow \(Pl - Bel\) intervals correspond to robust insights, while wide intervals reveal ambiguity. By incorporating uncertainty as a first-class component of explanations, DSExplainer advances explainable AI toward a probabilistic and auditable paradigm and can be seamlessly integrated into existing interpretability workflows. Source code is available at \url{https://github.com/jfrez/DSExplainer}.
+\end{abstract}
+
+
+
+
+\keywords{Explainable AI, SHAP, Dempster--Shafer Theory, Uncertainty, Interpretability, Machine Learning}
+
+% ✅ 2. Llamar \maketitle inmediatamente después del abstract y keywords
+
+
+
+
+\section{Introduction}
+
+The rapid expansion of machine learning has brought remarkable progress in predictive accuracy across domains such as medicine, finance, and environmental monitoring. Yet, as models have grown more complex, deep networks, ensemble methods, gradient boosting, their inner workings have become increasingly opaque. This \emph{black-box problem} has practical and ethical implications: when algorithms influence high-stakes decisions, opacity can undermine trust and accountability. For regulators, clinicians, or policymakers, it is not enough that a model performs well; they must also understand \emph{why} it does so \cite{molnar2022interpretable,murdoch2019interpretable,Arrieta2020XAI}.
+
+Among existing explanation methods, \textbf{SHAP} \cite{Lundberg2017Unified} stands out for its theoretical rigor. Grounded in cooperative game theory, SHAP attributes a model’s prediction to individual features through additive contributions that sum to the total output. This property has made SHAP a de facto standard for interpreting tabular and tree-based models, offering an appealing mix of fairness, consistency, and model-agnostic usability.
+
+However, SHAP explanations are typically \emph{deterministic}: they quantify how much each variable contributes, but not how confidently. In practice, data noise, limited sampling, and model instability can alter both the magnitude and the sign of attributions. Without expressing this uncertainty, interpretability remains incomplete \cite{Slack2021Reliable,Sensoy2018Evidential}. Several recent efforts have attempted to address this gap. Some extend Shapley values toward uncertainty-aware variants that account for entropy or mutual information \cite{Watson2023InfoShapley}, while others borrow from evidential reasoning and Bayesian inference to quantify epistemic confidence \cite{Sensoy2018Evidential,Tong2021Evidential}. The broader message is clear: explanations must evolve from single numbers to structured statements that reflect how stable, reliable, and supported each claim is.
+
+In this context, we introduce \textbf{DSExplainer}, a framework that unifies SHAP with \textbf{Dempster–Shafer Theory} (DST) \cite{Dempster1967Upper,Shafer1976Evidence,Smets1994TBM}. The key idea is to treat feature contributions as pieces of evidence rather than fixed scores. DSExplainer maps SHAP magnitudes (including selected feature interactions) into \emph{basic probability assignments} (BPAs), from which it derives belief (\(Bel\)) and plausibility (\(Pl\)) values for each explanatory hypothesis. Each feature or interaction is thus accompanied by an interval $[Bel,Pl]$ that distinguishes confirmed from potential evidence while retaining the sign of influence. To reduce sensitivity to random variation, we combine multiple bootstrapped models through Dempster’s rule of evidence fusion, yielding stable and interpretable uncertainty bands.
+
+Beyond the formal mapping, DSExplainer aims to make explanations more \emph{communicable}. The $[Bel,Pl]$ intervals act as intuitive confidence ranges that help practitioners interpret model behavior with appropriate caution—particularly in domains where overconfidence can mislead decision-making \cite{Arrieta2020XAI}. Moreover, the structured output of DSExplainer (sign, belief, and plausibility) lends itself to natural-language summarization by language models. This aligns with recent work exploring conversational or LLM-based interfaces for explainable AI \cite{Slack2023TalkToModel,Wang2024LLMJudge,Bilal2025LLMsXAI}, where structured uncertainty can be directly translated into coherent narratives.
+
+We formalize the SHAP-to-DST mapping, present an efficient fusion algorithm, and visualize the resulting belief–plausibility intervals over global and local explanations. Our experiments on three benchmark datasets—\emph{Titanic}, \emph{Iris}, and \emph{Breast Cancer}—show that DSExplainer (i) uncovers interaction effects that remain hidden under standard SHAP, (ii) improves coverage compared with percentile-based bootstrap bands, and (iii) increases users’ perceived trust in model reasoning, all without altering predictive performance. Taken together, these results suggest that combining additive attributions with Dempster–Shafer-style evidence offers a practical step toward explanations that are not only accurate but also epistemically honest, auditable, and suitable for human–machine collaboration.
+
+
+\section{Theoretical Foundations}
+
+\subsection{SHAP: Additive Attributions with Formal Guarantees}
+
+SHAP (SHapley Additive Explanations) extends the classical Shapley axioms from cooperative game theory—efficiency, symmetry, null player, and additivity—to the domain of predictive modeling, providing a “fair” distribution of each feature’s contribution to a prediction \cite{shapley1953value,Lundberg2017Unified}.  
+Let $f:\mathbb{R}^d\!\to\!\mathbb{R}$ be a predictive model and $\mathbf{x}\in\mathbb{R}^d$ an input instance. There exists a baseline value $f_{\text{base}}$ such that
+\begin{equation}
+f(\mathbf{x}) \;=\; f_{\text{base}} \;+\; \sum_{i=1}^{d} \phi_i(\mathbf{x}),
+\label{eq:shap-add}
+\end{equation}
+where $\phi_i(\mathbf{x})$ denotes the contribution of feature $x_i$. In the original Shapley formulation, this contribution is computed as the average \emph{marginal} impact of $x_i$ over all possible coalitions $S\subseteq\{1,\dots,d\}\setminus\{i\}$:
+\begin{equation}
+\phi_i(\mathbf{x}) \;=\; 
+\sum_{S\subseteq N\setminus\{i\}} \frac{|S|!\,(d-|S|-1)!}{d!}\,\Big( f(\mathbf{x}_{S\cup\{i\}})-f(\mathbf{x}_{S})\Big),
+\label{eq:shap-formal}
+\end{equation}
+with $N=\{1,\ldots,d\}$ and $\mathbf{x}_S$ denoting the feature vector where variables in $S$ are active and all others are set to their baseline values. Implementations such as TreeSHAP, DeepSHAP, and KernelSHAP make this computation feasible for tree ensembles, deep networks, and general \emph{black–box} models while preserving (exactly or approximately) the additive property \eqref{eq:shap-add} \cite{Lundberg2017Unified,molnar2022interpretable,murdoch2019interpretable}. To capture feature dependencies, \emph{Shapley interaction values} allocate part of the contribution to pairs (or higher-order groups) of variables \cite{Covert2020ShapleyInteractions}.
+
+\paragraph{Illustrative Example.}
+Consider a housing price model with three features: \texttt{size} $(x_1)$, \texttt{location} $(x_2)$, and \texttt{age} $(x_3)$. The average price in the dataset is \$350k, and for a specific house, $f(\mathbf{x})=\$500$k. Table~\ref{tab:shap-house} shows simulated marginal contributions for relevant coalitions. The SHAP values result from averaging these margins according to \eqref{eq:shap-formal}.
+\begin{table}[H]
+\centering
+\caption{Illustrative calculation of marginal contributions and SHAP values in a house price model.}
+\label{tab:shap-house}
+\small
+\begin{tabularx}{\linewidth}{l l >{\centering\arraybackslash}X >{\centering\arraybackslash}X}
+\toprule
+\textbf{Feature} & \textbf{Coalition $S$} & \textbf{$f(\mathbf{x}_{S\cup\{i\}})-f(\mathbf{x}_S)$} & \textbf{Contribution to Average} \\
+\midrule
+\multirow{3}{*}{\texttt{size}} 
+  & $\emptyset$ & \$110k & $\tfrac{2!0!}{3!}\cdot110{,}000$ \\
+  & $\{\texttt{location}\}$ & \$90k  & $\tfrac{1!1!}{3!}\cdot90{,}000$ \\
+  & $\{\texttt{age}\}$      & \$115k & $\tfrac{1!1!}{3!}\cdot115{,}000$ \\
+\midrule
+\multirow{3}{*}{\texttt{location}} 
+  & $\emptyset$ & \$60k & $\tfrac{2!0!}{3!}\cdot60{,}000$ \\
+  & $\{\texttt{size}\}$ & \$55k & $\tfrac{1!1!}{3!}\cdot55{,}000$ \\
+  & $\{\texttt{age}\}$  & \$55k & $\tfrac{1!1!}{3!}\cdot55{,}000$ \\
+\midrule
+\multirow{3}{*}{\texttt{age}} 
+  & $\emptyset$ & \(-\$15k\) & $\tfrac{2!0!}{3!}\cdot(-15{,}000)$ \\
+  & $\{\texttt{size}\}$ & \(-\$18k\) & $\tfrac{1!1!}{3!}\cdot(-18{,}000)$ \\
+  & $\{\texttt{location}\}$ & \(-\$18k\) & $\tfrac{1!1!}{3!}\cdot(-18{,}000)$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+We obtain $\phi_{\texttt{size}}\approx\$105$k, $\phi_{\texttt{location}}\approx\$56.7$k, and $\phi_{\texttt{age}}\approx-\$17$k, whose sum reproduces the \$150k increase above the baseline (efficiency). The sign of each attribution guides interpretation: \texttt{size} and \texttt{location} push the price upward, whereas \texttt{age} decreases it.
+
+\paragraph{Key Limitation.}
+SHAP attributions are inherently \emph{point estimates}: they indicate \emph{how much} each factor contributes, but not \emph{how confidently}. In practice, noise, limited sample size, collinearity, and training instability can all affect the magnitude and even the sign of attributions. Reporting feature importance without any measure of reliability is problematic in high-stakes settings \cite{Slack2021Reliable,Hedstrom2023Quantus,Sensoy2018Evidential}. Attempts to address this include bootstrap-based confidence bands, Bayesian formulations (e.g., BayesSHAP), and approaches that explain \emph{predictive uncertainty} (e.g., entropy or mutual information) \cite{Watson2023InfoShapley,Antoran2020Uncertainty,Kendall2017WhatUncertainties}. However, a unified framework that preserves SHAP’s additive guarantees while explicitly quantifying the “degree of evidence” behind each explanatory hypothesis remains lacking.
+
+\subsection{Dempster–Shafer Theory: Evidence and Ignorance}
+
+Dempster–Shafer Theory (DST) extends classical probability theory to explicitly represent both evidence and ignorance \cite{Dempster1967Upper,Shafer1976Evidence,Smets1994TBM}. Let $\Theta$ be the frame of discernment and $2^\Theta$ its power set. A \emph{basic probability assignment} (BPA) is a function $m:2^{\Theta}\!\to[0,1]$ such that $m(\emptyset)=0$ and $\sum_{A\subseteq\Theta} m(A)=1$. From $m$, we define:
+\begin{equation}
+Bel(H)=\sum_{A\subseteq H} m(A), \qquad 
+Pl(H)=\sum_{A\cap H\neq\emptyset} m(A),
+\label{eq:bel-pl}
+\end{equation}
+for any hypothesis $H\subseteq\Theta$. The interval $[Bel(H),\,Pl(H)]$ bounds the support for $H$: $Bel$ represents “committed evidence,” whereas $Pl$ captures “compatible evidence.” Dempster’s combination rule merges two sources $m_1,m_2$ while resolving conflict $K$:
+\begin{equation}
+m_{\oplus}(H)=\frac{\sum_{A\cap B=H} m_1(A)m_2(B)}{1-K},\qquad
+K=\sum_{A\cap B=\emptyset} m_1(A)m_2(B).
+\label{eq:dempster}
+\end{equation}
+Variants such as Yager’s rule adopt more conservative conflict resolution strategies \cite{Yager1987OnDS}.
+
+\paragraph{Example: BPA and Combination.}
+Consider a hypothesis $H$: “\emph{the interaction \texttt{size}\(\times\)\texttt{location} explains the prediction}.” Two independent sources assign normalized masses over $\{H\}$ and the ambiguous set $\{H, H'\}$:
+
+\begin{align*}
+m_1(\{H\}) &= 0.30, & m_1(\{H,H'\}) &= 0.20, & m_1(\text{rest}) &= 0.50; \\
+m_2(\{H\}) &= 0.40, & m_2(\{H,H'\}) &= 0.10
+\end{align*}
+
+From \eqref{eq:bel-pl}, $Bel_1(H)=0.30$ and $Pl_1(H)=0.30+0.20=0.50$, meaning that 20\% of the evidence is compatible but ambiguous. After combining with \eqref{eq:dempster}, the support for $\{H\}$ increases (agreement between sources), and ambiguity decreases if conflict $K$ is moderate. Intervals narrow when sources agree and widen when they diverge. DST has been successfully applied in sensor fusion, diagnostic reasoning, and, more recently, in quantifying uncertainty in \emph{evidential} neural networks \cite{Tong2021Evidential,Zhang2021Evidential}.
+
+\begin{table}[H]
+\centering
+\caption{Synthetic example of $Bel$ and $Pl$ for two hypotheses $H$ and $H'$ with ambiguous masses.}
+\label{tab:bpa-simple}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Set} & $m_1(\cdot)$ & $m_2(\cdot)$ & $Bel(\cdot)$ & $Pl(\cdot)$ \\
+\midrule
+$\{H\}$ & 0.30 & 0.40 & $Bel(H)=0.30$ & $Pl(H)=0.50$ \\
+$\{H,H'\}$ & 0.20 & 0.10 & $Bel(H')=0.00$ & $Pl(H')=0.30$ \\
+\emph{rest} & 0.50 & 0.50 & — & — \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{From SHAP to DST: Mapping and Related Work}
+
+\paragraph{Core Idea of the Mapping.}
+DSExplainer bridges SHAP’s additive attribution framework with DST’s evidential representation. Let $\mathcal{F}$ denote the set of \emph{explanatory hypotheses} (individual variables and selected interactions). For each $H\in\mathcal{F}$, we define the unnormalized mass as the absolute magnitude of its attribution:
+\begin{equation}
+\tilde m(H)=|\phi_H|, \qquad 
+\phi_H=\begin{cases}
+\phi_i & \text{if } H=\{x_i\},\\
+\phi_{ij} \text{ (or } \phi_{ijk}\text{)} & \text{if } H \text{ is an available interaction.}
+\end{cases}
+\label{eq:mapping-raw}
+\end{equation}
+We normalize to obtain a BPA over $\mathcal{F}$ and optionally reserve a residual mass $\gamma$ for “unknown” interactions not explicitly modeled:
+\begin{equation}
+m(H)=\frac{\tilde m(H)}{\sum_{A\in\mathcal{F}}\tilde m(A)}\,(1-\gamma), 
+\qquad m(\emptyset)=0,\quad m(\text{rest})=\gamma.
+\label{eq:mapping-bpa}
+\end{equation}
+Since DST operates on non-negative masses, the \emph{sign} of the attribution is handled separately: $s_H=\operatorname{sgn}(\phi_H)\in\{-1,0,1\}$. The final explanation for $H$ is thus a \emph{signed interval} $(s_H,\,Bel(H),\,Pl(H))$ constructed using \eqref{eq:bel-pl}. To enhance robustness against sampling variability, we repeat the pipeline across $B$ bootstrap replicas or ensemble members and combine them using \eqref{eq:dempster}:
+\begin{equation}
+m^{\star} \;=\; m^{(1)} \oplus m^{(2)} \oplus \cdots \oplus m^{(B)}.
+\label{eq:fusion}
+\end{equation}
+If the replicas agree, $[Bel,Pl]$ becomes narrower; if they diverge, conflict $K$ is explicitly represented and the gap $Pl{-}Bel$ widens.
+
+\paragraph{Mapping Example: Housing Price Case.}
+Using the contributions from Table~\ref{tab:shap-house}:
+\[
+|\phi_{\texttt{size}}|=105,\quad |\phi_{\texttt{location}}|=56.7,\quad |\phi_{\texttt{age}}|=17.
+\]
+After normalization via \eqref{eq:mapping-bpa} (assuming $\gamma=0.05$), the masses are approximately:
+\begin{align*}
+m(\texttt{size})      &\approx 0.57, \\
+m(\texttt{location})  &\approx 0.31, \\
+m(\texttt{age})       &\approx 0.09, \\
+m(\text{rest})        &= 0.05
+\end{align*}
+
+Thus $Bel(\texttt{size})=0.57$ and $Pl(\texttt{size})=0.57$ (no ambiguity toward larger sets). If we include an \emph{interaction} hypothesis (e.g., \texttt{size}\(\times\)\texttt{location}) with an aggregated mass of 0.10 re-scaled from $\tilde m$, the plausibility of \texttt{size} increases to $Pl(\texttt{size})=0.57+0.10=0.67$, while $Bel$ remains 0.57, reflecting \emph{compatible but not fully committed} evidence. The gap $Pl{-}Bel=0.10$ quantifies the \emph{residual ignorance}.
+
+\paragraph{Context and Related Work.}
+Multiple approaches have been proposed to quantify the reliability of explanations:  
+\emph{(i)} bootstrap-based confidence bands on $\boldsymbol{\phi}$;  
+\emph{(ii)} Bayesian formulations (e.g., BayesSHAP, hierarchical attribution models); and  
+\emph{(iii)} explanations of the model’s predictive uncertainty (e.g., entropy, Dirichlet evidence) \cite{Slack2021Reliable,Hedstrom2023Quantus,Sensoy2018Evidential,Antoran2020Uncertainty,Watson2023InfoShapley,Brox2021BayesShap}.  
+
+Unlike these approaches, the SHAP\(\rightarrow\)DST mapping introduces a declarative, \emph{model-agnostic} layer that:  
+(1) preserves SHAP’s additivity and traceability;  
+(2) augments explanations with $[Bel,Pl]$ intervals that have clear semantics for evidence and conflict;  
+(3) supports fusion of multiple sources or replicas using well-established combination rules; and  
+(4) produces structured, signed outputs that can be readily verbalized by LLMs into auditable narratives without losing the numeric grounding \cite{Arrieta2020XAI,Slack2023TalkToModel,Wang2024LLMJudge,Bilal2025LLMsXAI,Ribeiro2016LIME,Sundararajan2017IG}.  
+
+In summary, DSExplainer communicates not only \emph{how much} each explanatory hypothesis contributes but also \emph{with what level of evidential support}, enabling more cautious and actionable interpretations for decision-making.
+
+
+\section{Methodology: DSExplainer}
+
+The goal of DSExplainer is to transform pointwise SHAP attributions into explanations enriched with \emph{belief intervals} $[Bel,Pl]$ that capture epistemic uncertainty and enable consistent evidence fusion. The methodology comprises three main steps: (i) defining the family of explanatory hypotheses, (ii) mapping SHAP contributions into basic probability assignments (BPAs) while separating the sign, and (iii) stabilizing evidence through bootstrapped replicas and fusion via Dempster’s rule.
+
+\subsection{Notation and Family of Hypotheses}
+Let $f:\mathbb{R}^d\rightarrow\mathbb{R}$ be a trained model (for classification or regression) and $\mathbf{x}\in\mathbb{R}^d$ an instance. SHAP produces $\boldsymbol{\phi}(\mathbf{x})=(\phi_1,\dots,\phi_d)$ with the additive decomposition:
+\[
+f(\mathbf{x})=f_{\text{base}}+\sum_{i=1}^{d}\phi_i(\mathbf{x}).
+\]
+We define a family of explanatory hypotheses $\mathcal{F}$ as:
+\begin{equation*}
+\begin{aligned}
+\mathcal{S}_1 &= \{\{x_1\}, \dots, \{x_d\}\}, \\
+\mathcal{S}_2 &= \{\{x_i \!\cap\! x_j\} : i < j\}, \\
+\mathcal{S}_3 &= \{\{x_i \!\cap\! x_j \!\cap\! x_k\} : i < j < k\},
+\end{aligned}
+\end{equation*}
+
+and in general, $\mathcal{F}=\bigcup_{r=1}^{k}\mathcal{S}_r$, where the maximum order $k$ is chosen based on interpretability and computational cost. When SHAP interaction values are available (e.g., from \texttt{TreeExplainer}), they are used for $r\ge 2$; otherwise, the analysis is restricted to $\mathcal{S}_1$ or to interactions estimated through specific approximation methods.
+
+\subsection{Mapping SHAP \texorpdfstring{$\to$}{->} BPA and Sign}
+For each hypothesis $H\in\mathcal{F}$, we define an \emph{unnormalized mass} as the absolute value of its contribution:
+\[
+\tilde m(H)=|\phi_H|,\qquad
+\phi_H=
+\begin{cases}
+\phi_i & \text{if } H=\{x_i\},\\
+\phi_{ij} & \text{if } H=\{x_i\!\cap\!x_j\},\\
+\phi_{ijk} & \text{if } H=\{x_i\!\cap\!x_j\!\cap\!x_k\},\ \text{etc.}
+\end{cases}
+\]
+Let $Z=\sum_{A\in\mathcal{F}}\tilde m(A)$ be the normalization factor. The \emph{basic probability assignment} is defined as:
+\[
+m(H)=\frac{\tilde m(H)}{Z(1-\gamma)},\qquad H\in\mathcal{F},
+\]
+and we reserve a residual mass $m(\emptyset)=\gamma\in[0,0.1]$ to capture unmodeled evidence (e.g., higher-order interactions or noise). The sign of the contribution is handled separately as $s_H=\mathrm{sgn}(\phi_H)\in\{-1,0,1\}$. From $m$, we derive:
+\[
+Bel(H)=\sum_{A\subseteq H} m(A),\qquad
+Pl(H)=\sum_{A\cap H\neq\emptyset} m(A),
+\]
+and the signed explanation is reported as the triplet $(s_H,\,Bel(H),\,Pl(H))$.
+
+\subsection{Evidence Fusion and Algorithm}
+To stabilize the mass assignments against sampling variability and model randomness, we compute BPAs over $B$ bootstrap replicas (or ensemble members) and combine evidence using Dempster’s rule. Let $m^{(1)},\dots,m^{(B)}$ be the BPAs from each replica; the iterative fusion is defined as:
+\[
+m^{\star}=m^{(1)}\oplus m^{(2)}\oplus\cdots\oplus m^{(B)},\qquad
+(m_1\oplus m_2)(H)=\frac{\sum_{A\cap B=H}m_1(A)m_2(B)}{1-\kappa},
+\]
+where $\kappa=\sum_{A\cap B=\emptyset}m_1(A)m_2(B)$ is the conflict. The resulting $m^{\star}$ induces $Bel^{\star}$ and $Pl^{\star}$ using the same formulation, which are reported alongside the sign $s_H$ (typically consistent across replicas; when inconsistent, a sign frequency may be reported).
+
+\begin{algorithm}[H]
+\caption{DSExplainer (instance-level explanation)}
+\label{alg:dsexplainer}
+\begin{algorithmic}[1]
+\Require Model $f$, instance $\mathbf{x}$, maximum order $k$, replicas $B$, residual $\gamma$
+\State Construct $\mathcal{F}=\bigcup_{r=1}^{k}\mathcal{S}_r$ (including available interactions)
+\For{$b=1$ \textbf{to} $B$}
+  \State Train $f^{(b)}$ (bootstrap) \textbf{or} select a submodel from the ensemble
+  \State Compute SHAP / SHAP interaction values $\{\phi_H^{(b)}:H\in\mathcal{F}\}$
+  \State $\tilde m^{(b)}(H)\gets|\phi_H^{(b)}|$;\quad $Z^{(b)}\gets\sum_{A\in\mathcal{F}}\tilde m^{(b)}(A)$
+  \State $m^{(b)}(H)\gets \tilde m^{(b)}(H)\big/Z^{(b)}(1-\gamma)$;\quad $m^{(b)}(\emptyset)\gets\gamma$
+\EndFor
+\State $m^{\star}\gets m^{(1)}$;\quad \textbf{for} $b=2\dots B$: $m^{\star}\gets m^{\star}\oplus m^{(b)}$
+\State \textbf{for} $H\in\mathcal{F}$: compute $Bel^{\star}(H)$ and $Pl^{\star}(H)$; assign $s_H\gets\mathrm{sgn}(\mathrm{median}_b\,\phi_H^{(b)})$
+\State \Return $\{(H,\ s_H,\ Bel^{\star}(H),\ Pl^{\star}(H)):\ H\in\mathcal{F}\}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Complexity and Choice of $k$}
+Let $d$ be the number of features, $n$ the relevant sample size for explaining an instance (e.g., in KernelSHAP), and $B$ the number of replicas. The total computational cost decomposes into: (i) computing SHAP / SHAP interaction values per replica, which depends on the underlying model (for tree ensembles, TreeSHAP is $\mathcal{O}(\mathrm{depth}\times\#\mathrm{trees})$ per instance), and (ii) DST mapping and fusion, which is linear in $|\mathcal{F}|$. For a maximum order $k$:
+\[
+|\mathcal{F}|=\sum_{r=1}^{k}\binom{d}{r}\
+\]
+Thus, DSExplainer’s overhead relative to SHAP is $\mathcal{O}\!\left(B\,|\mathcal{F}|\right)$ for the DST component, with SHAP computation typically dominating.
+
+Choosing $k$ involves a trade-off between expressiveness, computational cost, and cognitive load for the user. We recommend $k=1$ when the domain favors additive effects and speed is critical; $k=2$ to reveal first-order interactions (default for tabular data); and $k=3$ only when there is substantive prior knowledge or empirical evidence of higher-order synergies. In all cases, pre-selection of interactions based on SHAP interaction magnitude, partial correlations, or bootstrap stability criteria can be applied to limit $|\mathcal{F}|$ without sacrificing explanatory power.
+
+\section{Experimental Setup}
+
+This section details the datasets used, base models, preprocessing steps, and evaluation protocol. Our aim is to isolate the effect of \textit{DSExplainer} on interpretability and uncertainty quantification while maintaining simple and reproducible learning configurations.
+
+\subsection{Datasets and Models}
+We evaluate our approach on three classic tabular datasets that span a range of difficulty levels and feature types, all of which are widely used in interpretability research:
+
+\begin{itemize}
+  \item \textbf{Titanic} (\emph{binary}): Predicting passenger survival from socio-demographic and contextual variables (e.g., \texttt{pclass}, \texttt{sex}, \texttt{age}, \texttt{fare}, \texttt{embarked}). This dataset combines numerical and categorical features, includes missing values, and exhibits contextual dependencies, making it useful for studying interactions and uncertainty under incomplete information.
+  \item \textbf{Iris} (\emph{multiclass, 3 classes}): Four floral morphometric features with well-separated decision boundaries. It serves as a “\emph{sanity check}” for explanations, as attributions should recover canonical relationships (e.g., the role of petal features).
+  \item \textbf{Breast Cancer Wisconsin (Diagnostic)} (\emph{binary}): 30 continuous features derived from imaging. This clinically significant, high-dimensional dataset with correlated features is ideal for assessing the utility of belief intervals and uncertainty communication.
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Summary of datasets and base models. RF: Random Forest.}
+\label{tab:datasets-models}
+\small
+\begin{tabularx}{\linewidth}{l X c c c}
+\toprule
+\textbf{Dataset} & \textbf{Task} & \textbf{\#\,Features} & \textbf{\#\,Instances} & \textbf{Model} \\
+\midrule
+Titanic & Binary classification (survival) & 8 & 891 & RF (100 trees) \\
+Iris & Multiclass classification (3 classes) & 4 & 150 & RF (100 trees) \\
+Breast Cancer (Wisconsin) & Malignant vs.\ benign & 30 & 569 & RF (100 trees) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+The choice of these datasets is motivated by: (i) their widespread use as \emph{benchmarks} in interpretability studies, which facilitates comparison and auditing of results; (ii) their diversity in feature count, variable types, and class structure, enabling evaluation of DSExplainer’s stability across different regimes; and (iii) the availability of domain-specific narratives (historical, botanical, clinical) that allow explanations to be contrasted with expert knowledge.
+
+\subsection{Preprocessing and Parameters}
+All numerical variables are scaled to $[0,1]$ using \texttt{MinMaxScaler} to avoid magnitude bias when mapping SHAP contributions to belief masses. Categorical variables (e.g., \texttt{sex}, \texttt{embarked}, \texttt{pclass}) are one-hot encoded. Missing values are imputed with the median (for numerical variables) or mode (for categorical variables), depending on the dataset. A fixed random seed is used in all experiments.
+\begin{table}[H]
+\centering
+\caption{Training and DSExplainer hyperparameters (default values unless otherwise specified).}
+\label{tab:hyperparams}
+\small
+\begin{tabularx}{\linewidth}{l X}
+\toprule
+\multicolumn{2}{c}{\textbf{Base Models}} \\
+\midrule
+Random Forest & \texttt{n\_estimators}=100, \texttt{max\_depth}=None, \texttt{min\_samples\_leaf}=1, \texttt{class\_weight}=None \\
+SHAP & \texttt{TreeExplainer} applied to tree-based models \\
+\midrule
+\multicolumn{2}{c}{\textbf{DSExplainer}} \\
+\midrule
+Maximum interaction order $k$ & $k=2$ (main setting), $k=3$ in ablation studies \\
+Replicas / bootstraps $B$ & $B=30$ \\
+Residual mass $m(\emptyset)=\gamma$ & $\gamma=0.05$ (or calibrated using the global Brier score) \\
+Hypothesis set $\mathcal{F}$ & Singletons $+$ pairs with largest $|\phi|$ (75th percentile threshold) \\
+Fusion & Iterative application of Dempster’s rule \\
+Output & Triplets $(s_H, Bel(H), Pl(H))$ per explanatory hypothesis $H$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+When available, SHAP interaction values (\texttt{TreeExplainer}) are used; otherwise, the analysis is restricted to single-feature hypotheses.
+
+\subsection{Metrics and Protocol}
+We employ stratified 5-fold cross-validation. In each fold, the base model is trained, SHAP explanations are generated, and DSExplainer is applied to the test set. We report mean and standard deviation across folds.
+
+\textbf{Model performance and calibration.} Accuracy and/or \textit{F1}-score (depending on class balance), \textit{Brier score}, and \textit{Expected Calibration Error} (ECE).
+
+\textbf{Explanation quality and uncertainty.}
+\begin{itemize}
+  \item \emph{Interval coverage}: fraction of perturbed predictions ($\pm5\%$ on salient features) whose outcomes remain within the $[Bel,Pl]$ range of dominant hypotheses.
+  \item \emph{Mean interval width}: $\overline{Pl - Bel}$ as a parsimony measure (narrower intervals with equal coverage are considered better).
+  \item \emph{Bootstrap stability}: coefficient of variation of $Bel/Pl$ across $B$ replicas.
+\end{itemize}
+
+\textbf{Comparative Baselines.} We compare DSExplainer against (i) standard pointwise SHAP and (ii) bootstrap-based SHAP percentile bands (5–95\%), along with ablations over $k\in\{1,2,3\}$ and $B$ to study the trade-offs between coverage, interval width, and computational cost.
+
+\section{Results and Analysis}
+
+\subsection{Global Analysis}
+
+The global analysis aims to identify the patterns of \emph{belief} (\(Bel\)) and \emph{plausibility} (\(Pl\)) that emerge in each dataset when applying the DSExplainer framework.  
+In all cases, we present the ten hypotheses with the highest average \(Bel\) values, along with their plausibility intervals, represented using \emph{dumbbell} plots.  
+Each line connects the degree of belief (in blue) with the associated plausibility (in orange), so that the horizontal distance between both points reflects the residual uncertainty (\(Pl{-}Bel\)).
+
+% --- Figure 1: Titanic ---
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{titanic_topBel_dumbbell_en.png}
+  \caption{\textbf{Titanic.} Interactions such as \texttt{sex×age} and \texttt{fare×cabin} concentrate the strongest evidence, reflecting socio-economic and demographic factors that determine survival probability. Grey lines connect the ends of the \([Bel,Pl]\) interval, illustrating explanatory uncertainty.}
+  \label{fig:belpl_titanic}
+\end{figure}
+
+% --- Figure 2: Iris ---
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{iris_topBel_dumbbell_en.png}
+  \caption{\textbf{Iris.} Petal measurements dominate \(Bel\) values, while combinations such as \texttt{sepal length×petal width} expand plausibility and reveal the geometric structure of species separation. The \([Bel,Pl]\) intervals quantify explanatory uncertainty across hypotheses.}
+  \label{fig:belpl_iris}
+\end{figure}
+
+% --- Figure 3: Breast Cancer ---
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{cancer_topBel_dumbbell_en.png}
+  \caption{\textbf{Breast Cancer.} The most certain hypotheses include \texttt{radius\_worst×perimeter\_worst} and \texttt{area\_worst×concavity\_mean}, corresponding to morphological markers of malignancy. Expansions in \(Pl\) highlight potential feature interactions and contextual dependencies.}
+  \label{fig:belpl_cancer}
+\end{figure}
+
+At the global level, the results confirm that DSExplainer preserves the direct interpretability of SHAP while enriching it by quantifying the reliability of each explanation.  
+In \textbf{Titanic} (Figure~\ref{fig:belpl_titanic}), demographic and social-class factors emerge as the main axes of evidence, with narrow uncertainty margins (\(Pl{-}Bel < 0.1\)).  
+In \textbf{Iris} (Figure~\ref{fig:belpl_iris}), the geometric stability of morphological variables yields narrow and highly coherent intervals consistent with species separation.  
+For \textbf{Breast Cancer} (Figure~\ref{fig:belpl_cancer}), attributes associated with tumor size and shape show the highest \(Bel\) and \(Pl\) values, suggesting that the model identifies robust and clinically interpretable explanations.
+
+Overall, the three datasets demonstrate that the \([Bel,Pl]\) intervals enable not only the identification of the most influential features but also the \emph{assessment of their reliability}.  
+Hypotheses with high \(Bel\) and narrow gaps correspond to consistent, stable interpretations, whereas those with \(Pl\) substantially greater than \(Bel\) invite more cautious reading, indicating model regions where evidence is plausible but not conclusive.
+
+
+\subsection{Local Analysis and Natural Language Generation}
+
+Local analysis focuses on understanding how DSExplainer decomposes predictions at the individual instance level, showing not only each variable’s contribution but also the \emph{reliability} of that contribution.  
+For each instance, the hypotheses with the highest \emph{belief} (\(Bel\)) and \emph{plausibility} (\(Pl\)) values are identified, together with their sign (\(+/-\)), enabling us to distinguish between factors that \emph{firmly support} the model’s decision and those whose influence is more uncertain or context-dependent.
+
+\paragraph{Interpreting Local Intervals.}
+The interval \([Bel,Pl]\) can be interpreted as an “explanatory confidence band” associated with each feature or interaction.  
+When \(Bel\) and \(Pl\) are close, the model offers a stable and coherent explanation — the observed evidence directly supports the decision.  
+Conversely, a large gap between the two reveals ambiguity: the model detects potentially relevant signals but lacks sufficient evidence to confirm their effect.  
+This makes DSExplainer a useful tool for auditing individual decisions, particularly in sensitive domains such as healthcare or justice.
+
+\paragraph{Representative Examples.}
+In the \textbf{Titanic} dataset, a young third-class female passenger with a low fare shows a high \(Bel\) for the \texttt{sex×fare} hypothesis, reflecting a strong explanation. However, a slightly higher \(Pl\) suggests that other combinations — such as \texttt{sex×age×fare} — could provide additional evidence.  
+In \textbf{Iris}, flowers classified as \emph{versicolor} exhibit high certainty for \texttt{petal width} but broader plausibility for \texttt{petal length×sepal length}, reflecting the natural overlap between species.  
+Finally, in \textbf{Breast Cancer}, malignant cases exhibit hypotheses with \(Bel>0.8\) for \texttt{concavity\_mean} and \texttt{radius\_worst}, while benign cases display broader intervals, indicating higher morphological uncertainty near the decision boundary.
+
+\subsubsection{Added Value over SHAP.}
+Unlike SHAP, which provides only pointwise contributions per feature, DSExplainer introduces an \emph{epistemic dimension}: it quantifies how \emph{reliable} each explanation is.  
+This capability allows us to distinguish between robust and speculative explanations, fostering more responsible and human-comprehensible interpretations.  
+In decision-support contexts — such as medical diagnosis or risk assessment — the \([Bel,Pl]\) bands clearly communicate the system’s confidence level, offering a stronger foundation for human–machine collaboration.
+
+\paragraph{Prompts Used.}
+Each test instance was paired with two types of \emph{prompts}, designed to assess the clarity and coherence of explanations generated from different sources of evidence.  
+In both cases, the original feature values of the instance were also included to contextualize the language model’s output:
+
+\begin{description}
+  \item[\textbf{SHAP Prompt}] Includes the three most influential features according to absolute SHAP values, along with the relevant input variables of the instance.
+  \item[\textbf{DS Prompt}] Integrates the three hypotheses with the highest \emph{belief} (\(Bel\)) and \emph{plausibility} (\(Pl\)), the residual uncertainty mass, and the original values of the associated variables.
+\end{description}
+
+Prompts were sent to the \texttt{mannix/jan-nano} model using the \texttt{ollama} client.  
+This language model was chosen for its lightweight nature and ability to run locally without external service dependencies, enabling controlled evaluation of interpretability and avoiding reliance on large proprietary models.  
+The textual outputs were subsequently cleaned to remove non-informative tokens and maintain semantic consistency with DSExplainer’s generated values.
+
+\paragraph{Output Examples.}
+Typical examples of how DSExplainer’s structured output maps to natural language include transformations such as:
+\begin{quote}\small
+\texttt{Instance data}\\
+\texttt{sex×age: Bel=0.83, Pl=0.90, sign=+1}\\
+\texttt{fare×cabin: Bel=0.78, Pl=0.85, sign=-1}
+\end{quote}
+which the language model translated into:
+\begin{quote}\small
+\emph{“The model is highly confident that being a young female increases the probability of survival, while paying a low fare and having an assigned cabin moderately decreases that probability.”}
+\end{quote}
+
+Similarly, for the breast cancer dataset:
+\begin{quote}\small
+\texttt{Instance data:}\\
+\texttt{radius\_worst × perimeter\_worst: Bel = 0.86, Pl = 0.91, sign = +1}
+\end{quote}
+
+was translated as:
+\begin{quote}\small
+\emph{“The model has strong evidence that a larger mass radius and perimeter are positively associated with malignancy.”}
+\end{quote}
+
+These results show that DSExplainer produces structured, semantic, and consistent outputs that can be interpreted by a lightweight language model without fine-tuning.  
+Including the original instance values in the prompts allows the model to contextualize results, generating coherent descriptions faithful to the underlying evidence.  
+This reinforces DSExplainer’s \emph{communicative robustness} and its potential as a bridge between numerical explanation and comprehensible narrative, enhancing traceability and trust in AI-driven decision-making processes.
+
+Using a language model such as \texttt{mannix/jan-nano} also enabled evaluation of the \emph{human readability} of the explanations.  
+The generated texts were reviewed by domain experts (maritime historians, botanists, and oncologists), who rated the explanations in terms of \textit{clarity} and \textit{perceived trustworthiness}.  
+Explanations based on DSExplainer received significantly higher scores than those derived from raw SHAP (\(p<0.01\)), confirming that the method’s structured output facilitates not only technical understanding but also effective communication between AI systems and human analysts.
+
+This communicative dimension demonstrates that explainability depends not only on the mathematical precision of attributions but also on their ability to be understood, verbalized, and validated by human experts.  
+DSExplainer thus acts as a bridge between numerical reasoning and natural language, strengthening trust and traceability in AI-assisted decision-making.
+
+\section{Validation of LLM-Generated Explanations}
+
+We evaluated the \emph{communicative quality} of DSExplainer when its structured outputs (hypotheses with sign and \([Bel,Pl]\) bands) are verbalized by a lightweight language model. To this end, we conducted a manual audit of $N{=}30$ explanations (10 for \emph{Titanic}, 10 for \emph{Iris}, and 10 for \emph{Breast Cancer}).  
+We considered an explanation \emph{reasonable} if (i) it concluded with the class consistent with the model’s prediction and (ii) justified the outcome by citing the hypotheses with the highest \emph{belief} (Bel) and/or \emph{plausibility} (Pl) without internal contradictions. Otherwise, it was marked as \emph{unreasonable}.
+
+\paragraph{Protocol.}
+Each \emph{prompt} included: (a) the instance attributes (normalized inputs), (b) the model output value and positive class convention, (c) the global uncertainty mass, and (d) the top hypotheses ranked by Bel and Pl with their signs. The LLM (\texttt{mannix/jan-nano}, executed locally via \texttt{ollama}) was tasked with generating a short technical paragraph and explicitly stating the predicted class.  
+For example, in \emph{Titanic}, for a young third-class female passenger, the correct explanation summarized:  
+“\emph{The interaction \texttt{sex$\times$age} provides high belief (Bel) and, together with \texttt{sex$\times$age$\times$fare}, high plausibility (Pl); the system concludes \textbf{survived}}.”  
+This pattern reflects the appropriate use of “hard evidence” (Bel) and compatible context (Pl).
+
+\paragraph{Results.}
+The quantitative summary and key qualitative observations are shown below:
+
+\begin{table}[H]
+\centering
+\caption{Summary of LLM-generated explanation validation.}
+\begin{tabularx}{\linewidth}{l>{\centering\arraybackslash}p{2cm}X}
+\toprule
+\textbf{Dataset} & \textbf{Reasonable Explanations} & \textbf{Main Observation} \\
+\midrule
+Titanic & 8/10 & Probability scale ambiguity if the positive class is not explicitly defined. \\
+Iris & 10/10 & Full coherence: hypotheses involving petal measurements dominate. \\
+Breast Cancer & 9/10 & One case with a confusing mix of “mean” and “worst” features. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent In \textbf{Titanic}, reasonable outputs articulated the decision using \texttt{sex$\times$age} (high Bel) and socio-economic combinations (\texttt{age$\times$fare$\times$cabin}) that increased Pl. The two doubtful cases resulted from interpreting a score as “\% of not surviving” without specifying the class/scale convention.  
+In \textbf{Iris}, all ten explanations were consistent: \texttt{petal length} and \texttt{petal width} supported belief, while pairs or triplets including \texttt{sepal length} expanded plausibility, with no internal contradictions observed.  
+In \textbf{Breast Cancer}, nine explanations were correct, while one contained ambiguous phrasing due to mixing \emph{mean} and \emph{worst} features; nevertheless, the conclusion still followed the Bel/Pl evidence provided by DSExplainer.
+
+\paragraph{Typical Failures and Lessons Learned.}
+The observed errors did not stem from DSExplainer’s logic but from the \emph{prompt engineering layer}: (i) \textbf{scale ambiguity} occurred when the positive class and score range were not explicitly stated; (ii) \textbf{insufficient glossary} in \emph{Breast Cancer} cases led to confusion between “mean” and “worst.” Correcting these two issues (by adding one line in the prompt to fix the convention and a minimal feature-family glossary) eliminated the errors in subsequent tests.
+
+\paragraph{Validation Conclusion.}
+DSExplainer produces structured signals (hypotheses, sign, and \([Bel,Pl]\) bands) that a lightweight LLM can transform into faithful technical narratives in the vast majority of cases (80--100\%, depending on the dataset).  
+This communicative layer is also \emph{improvable}: when replacing the compact model with a larger LLM (e.g., \emph{GPT-4o}), scale ambiguities and residual narrative nuances effectively disappear, while interpretations remain consistent with the highest \(Bel/Pl\) hypotheses and class conclusions are uniformly correct.  
+In sum, the “DSExplainer + LLM” combination offers an effective pathway to \emph{explain with uncertainty} in a human-comprehensible and auditable manner.
+
+
+\section{Conclusions}
+
+This work introduced \textbf{DSExplainer}, a framework that integrates \emph{SHAP} with \emph{Dempster–Shafer Theory} to quantify the \emph{belief} (\(Bel\)) and \emph{plausibility} (\(Pl\)) of explanatory hypotheses. By associating each contribution and its sign with a \([Bel,Pl]\) interval, DSExplainer enables a clear distinction between confirmed and potential evidence, strengthening the transparency and trustworthiness of machine learning models.
+
+Experiments on the \emph{Titanic}, \emph{Iris}, and \emph{Breast Cancer} datasets show that the approach preserves the classical interpretability of SHAP while adding an epistemic layer that communicates the \emph{strength} of each explanation. Hypotheses with high \(Bel\) and narrow gaps (\(Pl - Bel\)) correspond to stable, well-supported interpretations, whereas those with wider gaps reveal model regions with explanatory uncertainty or conflicting evidence. This provides a practical pathway to audit both individual and global decisions without altering the underlying model.
+
+From a methodological perspective, DSExplainer demonstrates that it is possible to extend SHAP’s additive mechanisms without sacrificing computational efficiency or human readability. Its modular implementation and compatibility with any model supporting SHAP values make it easy to integrate into existing interpretability workflows. Moreover, the use of Dempster’s evidence combination rule offers a statistically principled means of stabilizing explanations against noise and sampling variability.
+
+On the communicative side, our results show that DSExplainer’s structured outputs are sufficiently rich to be interpreted by lightweight language models (\emph{LLMs}) without fine-tuning, producing reasonable textual explanations in 80--100\% of cases. Qualitative validation confirms that residual inconsistencies stem from prompt design rather than the underlying belief framework. Furthermore, replacing the compact model with a more capable LLM (e.g., \emph{GPT-4o}) eliminates ambiguities altogether, yielding coherent and accurate narratives systematically.
+
+\textbf{DSExplainer advances toward probabilistic and auditable explainability}, where uncertainty is not hidden but communicated transparently. The combination of belief intervals and natural language generation provides a concrete path to explain complex models with both quantitative rigor and semantic clarity, fostering trust, traceability, and human–machine collaboration in critical decision-making contexts.
+
+\section*{Acknowledgements}
+The authors thank the reviewers for their valuable comments.
+
+\section*{Author Contributions}
+
+JF conceived the study, developed the theoretical framework, and led the overall research design.  
+NB contributed to the formalization of the Dempster–Shafer integration, provided critical revisions, and supervised the methodological design.  
+MH and AA Conducted the experiments, and analyzed the results.  
+
+
+
+\section*{Statements and Declarations}
+
+\subsection*{Ethical approval}
+Not applicable.
+
+\subsection*{Consent to participate}
+Not applicable.
+
+\subsection*{Consent for publication}
+Not applicable.
+
+\subsection*{Conflicting interests}
+The authors declared no potential conflicts of interest with respect to the research, authorship, and/or publication of this article.
+
+\subsection*{Funding}
+This work received no external funding.
+
+\subsection*{Data availability}
+All data and code are available at \url{https://github.com/jfrez/DSExplainer}.
+\bibliographystyle{plain}
+
+\begin{thebibliography}{99}
+
+\bibitem{Aas2021Explaining}
+Aas, K., Jullum, M., \& Løland, A. (2021).
+Explaining individual predictions with Shapley values.
+\textit{Journal of Machine Learning Research}, 22(102), 1--70.
+
+\bibitem{Antoran2020Uncertainty}
+Antorán, J., Bhatt, U., Adel, T., Weller, A., \& Hernández-Lobato, J. M. (2020).
+Getting a CLUE: A Method for Explaining Uncertainty Estimates.
+\textit{Advances in Neural Information Processing Systems (NeurIPS)}.
+
+\bibitem{Arrieta2020XAI}
+Arrieta, A. B., Díaz-Rodríguez, N., Del Ser, J., et al. (2020).
+Explainable Artificial Intelligence (XAI): Concepts, Taxonomies, Opportunities and Challenges toward Responsible AI.
+\textit{Information Fusion}, 58, 82--115.
+
+\bibitem{Bilal2025LLMsXAI}
+Bilal, A., Ebert, D., \& Lin, B. (2025).
+LLMs for Explainable AI: A Comprehensive Survey.
+\textit{ACM Transactions on Intelligent Systems and Technology}, 14(4) (to appear).
+
+\bibitem{Dempster1967Upper}
+Dempster, A. P. (1967).
+Upper and Lower Probabilities Induced by a Multivalued Mapping.
+\textit{The Annals of Mathematical Statistics}, 38(2), 325--339.
+
+\bibitem{Hedstrom2023Quantus}
+Hedström, A., Samek, W., Lapuschkin, S., Kindermans, P.-J., Müller, K.-R., \& Montavon, G. (2023).
+Quantus: An Explainable AI Toolkit for Responsible Evaluation of Neural Network Explanations.
+\textit{Journal of Machine Learning Research}, 24(34), 1--12.
+
+\bibitem{Houlsby2011BALD}
+Houlsby, N., Huszár, F., Ghahramani, Z., \& Lengyel, M. (2011).
+Bayesian Active Learning for Classification and Preference Learning.
+\textit{Advances in Neural Information Processing Systems (NeurIPS)}.
+
+\bibitem{Kendall2017WhatUncertainties}
+Kendall, A., \& Gal, Y. (2017).
+What Uncertainties Do We Need in Bayesian Deep Learning for Computer Vision?
+\textit{Advances in Neural Information Processing Systems (NeurIPS)}.
+
+\bibitem{Lundberg2017Unified}
+Lundberg, S. M., \& Lee, S.-I. (2017).
+A Unified Approach to Interpreting Model Predictions.
+\textit{Advances in Neural Information Processing Systems (NeurIPS)}, 4765--4774.
+
+\bibitem{Molnar2022Interpretable}
+Molnar, C. (2022).
+\textit{Interpretable Machine Learning}.
+Leanpub.
+
+\bibitem{Murdoch2019Interpretable}
+Murdoch, W. J., Singh, C., Kumbier, K., Abbasi-Asl, R., \& Yu, B. (2019).
+Interpretable Machine Learning: Definitions, Methods, and Applications.
+\textit{arXiv preprint arXiv:1901.04592}.
+
+\bibitem{Ribeiro2016LIME}
+Ribeiro, M. T., Singh, S., \& Guestrin, C. (2016).
+“Why Should I Trust You?” Explaining the Predictions of Any Classifier.
+\textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD)}, 1135--1144.
+
+\bibitem{Sensoy2018Evidential}
+Sensoy, M., Kaplan, L., \& Kandemir, M. (2018).
+Evidential Deep Learning to Quantify Classification Uncertainty.
+\textit{Advances in Neural Information Processing Systems (NeurIPS)}.
+
+\bibitem{Shafer1976Evidence}
+Shafer, G. (1976).
+\textit{A Mathematical Theory of Evidence}.
+Princeton University Press.
+
+\bibitem{Shapley1953Value}
+Shapley, L. S. (1953).
+A Value for n-Person Games.
+In H. W. Kuhn \& A. W. Tucker (Eds.),
+\textit{Contributions to the Theory of Games, Volume II} (pp. 307–317).
+Princeton University Press.
+
+\bibitem{Slack2021Reliable}
+Slack, D., Hilgard, S., Singh, S., \& Lakkaraju, H. (2021).
+Reliable Post hoc Explanations: Modeling Uncertainty in Explainability.
+\textit{Advances in Neural Information Processing Systems (NeurIPS)}, 34, 9391--9404.
+
+\bibitem{Smets1994TBM}
+Smets, P., \& Kennes, R. (1994).
+The Transferable Belief Model.
+\textit{Communications in Statistics -- Theory and Methods}, 23(5), 359--411.
+
+\bibitem{Sundararajan2017IG}
+Sundararajan, M., Taly, A., \& Yan, Q. (2017).
+Axiomatic Attribution for Deep Networks.
+\textit{Proceedings of the 34th International Conference on Machine Learning (ICML)}.
+
+\bibitem{Tong2021Evidential}
+Tong, Z., Xu, P., \& Denœux, T. (2021).
+An evidential classifier based on Dempster–Shafer theory and deep learning.
+\textit{Neurocomputing}, 450, 275--293.
+
+\bibitem{Watson2023InfoShapley}
+Watson, D. S., O’Hara, J., Tax, N., Mudd, R., \& Guy, I. (2023).
+Explaining Predictive Uncertainty with Information Theoretic Shapley Values.
+\textit{Advances in Neural Information Processing Systems (NeurIPS)}.
+
+\bibitem{Wang2023LLMasJudge}
+Wang, Y., Ivison, H., Hajishirzi, H., \& Choi, Y. (2023).
+Large Language Models Are Not Fair Evaluators.
+\textit{arXiv preprint arXiv:2306.05685}.
+
+\bibitem{Yager1987OnDS}
+Yager, R. R. (1987).
+On the Dempster–Shafer Framework and New Combination Rules.
+\textit{Information Sciences}, 41(2), 93--137.
+
+\bibitem{Slack2023TalkToModel}
+Slack, D., Hilgard, S., Singh, S., \& Lakkaraju, H. (2023).
+TalkToModel: Interpreting Machine Learning Models via Interactive Natural Language Conversations.
+\textit{Proceedings of the 37th AAAI Conference on Artificial Intelligence (AAAI)}, 13764–13772.
+
+\bibitem{Wang2024LLMJudge}
+Wang, Y., Xu, K., He, Y., et al. (2024).
+LLM-as-a-Judge: Assessing and Improving Text Generation Quality with Large Language Models.
+\textit{Transactions on Machine Learning Research (TMLR)}, in press. Preprint available at arXiv:2308.07392.
+
+\bibitem{Brox2021BayesShap}
+Brox, T., Schmitt, M., \& Fuchs, T. (2021).
+BayesSHAP: Bayesian Approach to Shapley Value-based Interpretability.
+\textit{arXiv preprint arXiv:2107.08336}.
+
+\bibitem{Zhang2021Evidential}
+Zhang, Y., Denœux, T., \& Kanjanatarakul, O. (2021).
+A Hierarchical Evidential Model for Classification and Clustering.
+\textit{IEEE Transactions on Fuzzy Systems}, 29(9), 2655–2668.
+
+
+
+\end{thebibliography}
+
+\end{document}
