@@ -1,0 +1,17 @@
+feat1,feat2,abs_corr
+Age,Hipertension,0.5315632360394432
+Hipertension,Diabetes,0.5004792935703033
+Age,Diabetes,0.30614806052569343
+Gender,Alcoholism,0.13347298267999755
+Gender,Scholarship,0.11411061238591233
+Age,Scholarship,0.10738460010584097
+Hipertension,Handcap,0.10614520383619472
+Gender,SMS_received,0.09731611904592627
+Diabetes,Handcap,0.09482637233017449
+Age,Handcap,0.07262099209868093
+Age,Alcoholism,0.07244780496087136
+Gender,Age,0.07155810451579428
+Neighbourhood,Scholarship,0.06734785422524743
+Scholarship,Hipertension,0.05912372950890411
+Gender,Handcap,0.0575108913870402
+Gender,Neighbourhood,0.05126211035097605
