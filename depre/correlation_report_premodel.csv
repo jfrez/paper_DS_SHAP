@@ -1,0 +1,45 @@
+feat1,feat2,abs_corr
+Employment Status,Income,0.6620808982200017
+Age,Physical Activity Level,0.3747369011479342
+Age,Smoking Status,0.3190792225254779
+Physical Activity Level,Dietary Habits,0.30041783792340515
+Education Level,Income,0.2788240680514897
+Age,Number of Children,0.25262462935916175
+Income,Dietary Habits,0.23165185574336156
+Age,Employment Status,0.23031282484357535
+Marital Status,Number of Children,0.20509433586242576
+Income,History of Mental Illness,0.19644328404199102
+Employment Status,History of Mental Illness,0.17356533704824406
+Marital Status,Family History of Depression,0.1564055944652778
+Physical Activity Level,Employment Status,0.13498441914272846
+Age,Family History of Depression,0.13167000072543752
+Employment Status,Alcohol Consumption,0.12389816760730452
+Education Level,Dietary Habits,0.12276298721422965
+Smoking Status,Alcohol Consumption,0.12169928717948703
+Number of Children,Physical Activity Level,0.11060606112097525
+Smoking Status,Physical Activity Level,0.10378635913859396
+Physical Activity Level,Family History of Depression,0.09535336112507817
+Employment Status,Sleep Patterns,0.09529544253716565
+Marital Status,Dietary Habits,0.094682126916224
+Number of Children,Family History of Depression,0.09400494461820524
+Dietary Habits,History of Mental Illness,0.09399321007032378
+Physical Activity Level,Alcohol Consumption,0.09349689482639753
+Number of Children,Sleep Patterns,0.09274677883829562
+Alcohol Consumption,Dietary Habits,0.09054364321681967
+Age,Income,0.08838081600834977
+Age,Marital Status,0.08360562073840133
+Dietary Habits,Family History of Depression,0.07919477997588178
+Smoking Status,Employment Status,0.07630025839367997
+Smoking Status,Sleep Patterns,0.07474539589387312
+Marital Status,Income,0.07271529919350724
+Employment Status,Dietary Habits,0.07089595271101634
+Alcohol Consumption,Sleep Patterns,0.07002989285097741
+Income,Sleep Patterns,0.06884161792385125
+Number of Children,Dietary Habits,0.06871308909374425
+History of Substance Abuse,Family History of Depression,0.06441943085111815
+Number of Children,History of Mental Illness,0.05885979516307999
+Education Level,Alcohol Consumption,0.056084360645830604
+Physical Activity Level,Income,0.05601622926653317
+Income,History of Substance Abuse,0.055172804219600004
+Income,Alcohol Consumption,0.05140364844410024
+Age,Education Level,0.05046168456167529

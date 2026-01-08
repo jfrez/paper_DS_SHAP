@@ -1,0 +1,141 @@
+variant,metric,row_index,class_label,rank,feature,value
+absolute,mass,0,NO,0,THETA,0.3883359841338187
+absolute,mass,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.17711339965982253
+absolute,mass,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.07767198793986359
+absolute,mass,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.03734051243188851
+absolute,certainty,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.20507745560203158
+absolute,certainty,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.07962742511125094
+absolute,certainty,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Family History of Depression,0.06571472478861108
+absolute,plausibility,0,NO,1,Alcohol Consumption_x_History of Substance Abuse_x_Family History of Depression,0.9482305267372371
+absolute,plausibility,0,NO,2,Sleep Patterns_x_History of Mental Illness_x_History of Substance Abuse,0.9453404926929763
+absolute,plausibility,0,NO,3,Sleep Patterns_x_History of Substance Abuse_x_Chronic Medical Conditions,0.944688966446992
+absolute,mass,1,YES,0,THETA,0.31308526570921935
+absolute,mass,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.19024407748851394
+absolute,mass,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.12691724200817042
+absolute,mass,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.052343670964564944
+absolute,certainty,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.21603955669397154
+absolute,certainty,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.12837727440124677
+absolute,certainty,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.07875894737714065
+absolute,plausibility,1,YES,1,Income_x_Alcohol Consumption_x_Chronic Medical Conditions,0.9533768231560455
+absolute,plausibility,1,YES,2,Alcohol Consumption_x_Dietary Habits_x_Chronic Medical Conditions,0.9504901144973138
+absolute,plausibility,1,YES,3,Dietary Habits_x_Sleep Patterns_x_History of Mental Illness,0.9493146350531331
+squared,mass,0,NO,0,THETA,0.332829600361972
+squared,mass,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.19318582517063648
+squared,mass,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.08472045091803478
+squared,mass,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.04072903416852646
+squared,certainty,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.22368752200830933
+squared,certainty,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.086853337217148
+squared,certainty,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Family History of Depression,0.07167810768994548
+squared,plausibility,0,NO,1,Alcohol Consumption_x_History of Substance Abuse_x_Family History of Depression,0.9435326269490338
+squared,plausibility,0,NO,2,Sleep Patterns_x_History of Mental Illness_x_History of Substance Abuse,0.9403803323587652
+squared,plausibility,0,NO,3,Sleep Patterns_x_History of Substance Abuse_x_Chronic Medical Conditions,0.9396696823701558
+squared,mass,1,YES,0,THETA,0.25484224307518377
+squared,mass,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.20637474052137914
+squared,mass,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.13767846669868938
+squared,mass,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.05678185442540643
+squared,certainty,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.23435740047026693
+squared,certainty,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.13926229422305544
+squared,certainty,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.0854368637555915
+squared,plausibility,1,YES,1,Income_x_Alcohol Consumption_x_Chronic Medical Conditions,0.9494236764136093
+squared,plausibility,1,YES,2,Alcohol Consumption_x_Dietary Habits_x_Chronic Medical Conditions,0.9462922057351459
+squared,plausibility,1,YES,3,Dietary Habits_x_Sleep Patterns_x_History of Mental Illness,0.9450170582063318
+signed,mass,0,NO,0,THETA,0.39607554673325857
+signed,mass,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.1748723323282325
+signed,mass,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.07668918169772712
+signed,mass,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.03686803207344774
+signed,certainty,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.20248255094163858
+signed,certainty,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.07861987615415225
+signed,certainty,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Family History of Depression,0.06488321727302476
+signed,plausibility,0,NO,1,Alcohol Consumption_x_History of Substance Abuse_x_Family History of Depression,0.9488855809314745
+signed,plausibility,0,NO,2,Sleep Patterns_x_History of Mental Illness_x_History of Substance Abuse,0.9460321153280895
+signed,plausibility,0,NO,3,Sleep Patterns_x_History of Substance Abuse_x_Chronic Medical Conditions,0.9453888330330897
+signed,mass,1,YES,0,THETA,0.31243028038596515
+signed,mass,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.1904254785742246
+signed,mass,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.12703825983852612
+signed,mass,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.05239358157870024
+signed,certainty,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.21624555422439717
+signed,certainty,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.12849968439825896
+signed,certainty,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.07883404542356738
+signed,plausibility,1,YES,1,Income_x_Alcohol Consumption_x_Chronic Medical Conditions,0.9533323671340213
+signed,plausibility,1,YES,2,Alcohol Consumption_x_Dietary Habits_x_Chronic Medical Conditions,0.9504429059476329
+signed,plausibility,1,YES,3,Dietary Habits_x_Sleep Patterns_x_History of Mental Illness,0.9492663056630548
+normalized,mass,0,NO,0,THETA,0.3933322475618918
+normalized,mass,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.17566668188930112
+normalized,mass,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.07703753879349663
+normalized,mass,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.03703550342071631
+normalized,certainty,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.2034023186563086
+normalized,certainty,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.0789770033410711
+normalized,certainty,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Family History of Depression,0.06517794631606633
+normalized,plausibility,0,NO,1,Alcohol Consumption_x_History of Substance Abuse_x_Family History of Depression,0.9486533960237146
+normalized,plausibility,0,NO,2,Sleep Patterns_x_History of Mental Illness_x_History of Substance Abuse,0.945786968683505
+normalized,plausibility,0,NO,3,Sleep Patterns_x_History of Substance Abuse_x_Chronic Medical Conditions,0.9451407643081403
+normalized,mass,1,YES,0,THETA,0.30335387334348424
+normalized,mass,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.192939229697193
+normalized,mass,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.12871525480117538
+normalized,mass,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.05308521394594388
+normalized,certainty,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.21910014862446647
+normalized,certainty,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.13019597119966672
+normalized,certainty,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.07987471063126642
+normalized,plausibility,1,YES,1,Income_x_Alcohol Consumption_x_Chronic Medical Conditions,0.9527163213432928
+normalized,plausibility,1,YES,2,Alcohol Consumption_x_Dietary Habits_x_Chronic Medical Conditions,0.9497887172237398
+normalized,plausibility,1,YES,3,Dietary Habits_x_Sleep Patterns_x_History of Mental Illness,0.9485965849824678
+bootstrap,mass,0,NO,0,THETA,0.48935241746668595
+bootstrap,mass,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.14786308663665423
+bootstrap,mass,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.0648444437521488
+bootstrap,mass,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.031173719410151877
+bootstrap,certainty,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.171208873202983
+bootstrap,certainty,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.06647694008749508
+bootstrap,certainty,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Family History of Depression,0.054861924977924206
+bootstrap,plausibility,0,NO,1,Alcohol Consumption_x_History of Substance Abuse_x_Family History of Depression,0.9567802654971996
+bootstrap,plausibility,0,NO,2,Sleep Patterns_x_History of Mental Illness_x_History of Substance Abuse,0.9543675211475899
+bootstrap,plausibility,0,NO,3,Sleep Patterns_x_History of Substance Abuse_x_Chronic Medical Conditions,0.9538235945901354
+bootstrap,mass,1,YES,0,THETA,0.40392342186582897
+bootstrap,mass,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.16508604788733744
+bootstrap,mass,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.11013360399171754
+bootstrap,mass,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.04542170187651135
+bootstrap,certainty,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.18747031220508525
+bootstrap,certainty,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.11140056052851179
+bootstrap,certainty,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.06834380092091925
+bootstrap,plausibility,1,YES,1,Income_x_Alcohol Consumption_x_Chronic Medical Conditions,0.9595423095071879
+bootstrap,plausibility,1,YES,2,Alcohol Consumption_x_Dietary Habits_x_Chronic Medical Conditions,0.9570373415199402
+bootstrap,plausibility,1,YES,3,Dietary Habits_x_Sleep Patterns_x_History of Mental Illness,0.9560173084215416
+bayes,mass,0,NO,0,THETA,0.39652364672505996
+bayes,mass,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.17474258051861674
+bayes,mass,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.07663227984269523
+bayes,mass,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.03684067672331996
+bayes,certainty,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.20233231289625714
+bayes,certainty,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.07856154176204487
+bayes,certainty,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Family History of Depression,0.06483507520993918
+bayes,plausibility,0,NO,1,Alcohol Consumption_x_History of Substance Abuse_x_Family History of Depression,0.948923506818796
+bayes,plausibility,0,NO,2,Sleep Patterns_x_History of Mental Illness_x_History of Substance Abuse,0.9460721584304148
+bayes,plausibility,0,NO,3,Sleep Patterns_x_History of Substance Abuse_x_Chronic Medical Conditions,0.9454293534381466
+bayes,mass,1,YES,0,THETA,0.30902925512843316
+bayes,mass,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.19136740757987095
+bayes,mass,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.1276666475031637
+bayes,mass,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.052652743506863324
+bayes,certainty,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.21731520079370661
+bayes,certainty,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.1291353009179462
+bayes,certainty,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.07922399363098623
+bayes,plausibility,1,YES,1,Income_x_Alcohol Consumption_x_Chronic Medical Conditions,0.9531015282917068
+bayes,plausibility,1,YES,2,Alcohol Consumption_x_Dietary Habits_x_Chronic Medical Conditions,0.9501977745467672
+bayes,plausibility,1,YES,3,Dietary Habits_x_Sleep Patterns_x_History of Mental Illness,0.9490153542745258
+entropy,mass,0,NO,0,THETA,0.43023811229346737
+entropy,mass,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.16498022167512869
+entropy,mass,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.0723510576437402
+entropy,mass,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.034782495453805795
+entropy,certainty,0,NO,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.19102859609029105
+entropy,certainty,0,NO,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.07417253732075446
+entropy,certainty,0,NO,3,Alcohol Consumption_x_Sleep Patterns_x_Family History of Depression,0.06121292846147376
+entropy,plausibility,0,NO,1,Alcohol Consumption_x_History of Substance Abuse_x_Family History of Depression,0.951777001676329
+entropy,plausibility,0,NO,2,Sleep Patterns_x_History of Mental Illness_x_History of Substance Abuse,0.949084949814716
+entropy,plausibility,0,NO,3,Sleep Patterns_x_History of Substance Abuse_x_Chronic Medical Conditions,0.948478056464489
+entropy,mass,1,YES,0,THETA,0.34436807114110535
+entropy,mass,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.18158016599622884
+entropy,mass,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.12113729991420377
+entropy,mass,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.04995988620550634
+entropy,certainty,1,YES,1,Alcohol Consumption_x_Sleep Patterns_x_History of Substance Abuse,0.20620089247514936
+entropy,certainty,1,YES,2,History of Mental Illness_x_Family History of Depression_x_Chronic Medical Conditions,0.12253084092633162
+entropy,certainty,1,YES,3,Alcohol Consumption_x_Sleep Patterns_x_Chronic Medical Conditions,0.0751721836875205
+entropy,plausibility,1,YES,1,Income_x_Alcohol Consumption_x_Chronic Medical Conditions,0.9555000907131633
+entropy,plausibility,1,YES,2,Alcohol Consumption_x_Dietary Habits_x_Chronic Medical Conditions,0.9527448457438847
+entropy,plausibility,1,YES,3,Dietary Habits_x_Sleep Patterns_x_History of Mental Illness,0.9516228988458932
